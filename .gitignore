@@ -1,0 +1,4 @@
+node_modules/
+errorlog/
+auth_info_baileys/
+config.json
