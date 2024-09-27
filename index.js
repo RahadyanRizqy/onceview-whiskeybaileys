@@ -119,7 +119,7 @@ async function connectToWhatsApp () {
                 const messageId = message.key.id;
                 const sender = message.key.remoteJid;
                 const isMe = message.key.fromMe;  // Check if the message is from the bot itself
-        
+                console.log("TOUCHING HERE!");
                 if (messageId && !repliedMessages.has(messageId)) {
                     const receivedMessage = message.message?.extendedTextMessage?.text || message.message?.conversation;
                     
