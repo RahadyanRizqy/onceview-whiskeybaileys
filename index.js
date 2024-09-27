@@ -51,7 +51,7 @@ async function connectToWhatsApp () {
         const message = m.messages[0];
 
         try {
-            let isGroup = message.key.remoteJid.includes('@g.us') 
+            let isGroup = message.key.remoteJid?.includes('@g.us') 
                             ? true 
                             : false;
 
