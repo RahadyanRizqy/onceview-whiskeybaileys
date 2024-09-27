@@ -49,6 +49,7 @@ async function connectToWhatsApp () {
 
     sock.ev.on('messages.upsert', async m => {
         const message = m.messages[0];
+        console.log(`Sender: ${message.pushName}`);
 
         try {
             let isGroup = message.key.remoteJid?.includes('@g.us') 
