@@ -1,5 +1,10 @@
-const { makeWASocket, DisconnectReason, useMultiFileAuthState, downloadMediaMessage } = require('@whiskeysockets/baileys')
-const fs = require("fs")
+const { 
+    makeWASocket, 
+    DisconnectReason, 
+    useMultiFileAuthState, 
+    downloadMediaMessage, 
+} = require('@whiskeysockets/baileys');
+const fs = require("fs");
 const config = require('./config.json');
 const path = require('path');
 const { format } = require('date-fns');
@@ -50,7 +55,6 @@ async function connectToWhatsApp () {
     sock.ev.on('messages.upsert', async m => {
         const message = m.messages[0];
         
-
         try {
             let isGroup = message.key.remoteJid?.includes('@g.us') 
                             ? true 
@@ -59,10 +63,14 @@ async function connectToWhatsApp () {
             let groupChatName;
             let pushName;
 
-            const viewonce = message.message?.viewOnceMessage;
+            
 
-            if (viewonce) {
-                console.log(message);
+            if (message.message?.viewOnceMessage || message.message?.viewOnceMessageV2 || message.message?.viewOnceMessageV2Extension) {
+                // Checking different versions of ViewOnce messages
+                const viewonce = message.message?.viewOnceMessage 
+                                || message.message?.viewOnceMessageV2 
+                                || message.message?.viewOnceMessageV2Extension;
+
                 const mediaBuffer = await downloadMediaMessage(message, 'buffer');
                 
                 // Obtain media
@@ -76,28 +84,27 @@ async function connectToWhatsApp () {
                 
                 let sentCaptionDetails;
 
+                pushName = message.pushName;
                 if (isGroup) {
                     const chat = await sock.groupMetadata(message.key.remoteJid);
                     groupChatName = chat.subject;
-                    pushName = message.pushName;
-                    sentCaptionDetails = `GC: ${groupChatName}\nSender: ${pushName}\nPhone: ${message.key.participant?.match(/\d+/g).join('')}` 
+                    sentCaptionDetails = `GC: ${groupChatName}\nPhone: ${message.key.participant?.match(/\d+/g).join('')}` 
                     + 
                     (receivedCaptionDetails == "" || receivedCaptionDetails == undefined 
                         ? "" 
                         : `\nCaption: ${receivedCaptionDetails}`);
                 }
                 else {
-                    pushName = message.pushName;
-                    sentCaptionDetails = `Sender: ${pushName}\nPhone: ${message.key.remoteJid?.match(/\d+/g).join('')}`
+                    sentCaptionDetails = `Phone: ${message.key.remoteJid?.match(/\d+/g).join('')}`
                     + 
                     (receivedCaptionDetails == "" || receivedCaptionDetails == undefined 
                         ? "" 
                         : `\nCaption: ${receivedCaptionDetails}`);
                 }
-
+                
                 if (mediaContent) {
                     await sock.sendMessage(config.groupDumper, {
-                        ...mediaContent,
+                        ...mediaContent, // image or video
                         caption: sentCaptionDetails,
                     });
                     console.log("Viewonce is sent");
