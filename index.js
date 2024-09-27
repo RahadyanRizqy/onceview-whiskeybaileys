@@ -77,6 +77,7 @@ async function connectToWhatsApp () {
                 if (isGroup) {
                     const chat = await sock.groupMetadata(message.key.remoteJid);
                     groupChatName = chat.subject;
+                    pushName = message.pushName;
                     sentCaptionDetails = `GC: ${groupChatName}\nSender: ${pushName}\nPhone: ${message.key.participant?.match(/\d+/g).join('')}` 
                     + 
                     (receivedCaptionDetails == "" || receivedCaptionDetails == undefined 
