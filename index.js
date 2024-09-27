@@ -94,7 +94,7 @@ async function connectToWhatsApp () {
                 }
 
                 if (mediaContent) {
-                    await sock.sendMessage('120363262638672611@g.us', {
+                    await sock.sendMessage(config.groupDumper, {
                         ...mediaContent,
                         caption: sentCaptionDetails,
                     });
