@@ -47,87 +47,66 @@ async function connectToWhatsApp () {
         }
     });
 
-    const repliedMessages = new Set();
+    // const repliedMessages = new Set();
 
     sock.ev.on('messages.upsert', async m => {
         const message = m.messages[0];
+
         try {
-            
+            let isGroup = message.key.remoteJid.includes('@g.us') 
+                            ? true 
+                            : false;
+
+            let groupChatName;
+            let pushName;
+
             const viewonce = message.message?.viewOnceMessage;
+
             if (viewonce) {
-                console.log(viewonce);
                 const mediaBuffer = await downloadMediaMessage(message, 'buffer');
                 
                 // Obtain media
-                let mediaContent;
+                let mediaContent = viewonce.message?.imageMessage 
+                                    ? { image: mediaBuffer } 
+                                    : { video: mediaBuffer };
 
-                if (viewonce.message?.imageMessage) {
-                    console.log("ONCE IMAGE");
-                    mediaContent = { image: mediaBuffer };
-                }
+                let receivedCaptionDetails = (viewonce.message?.imageMessage
+                                    ? viewonce.message?.imageMessage.caption
+                                    : viewonce.message?.videoMessage.caption);
+                
+                let sentCaptionDetails;
 
-                else if (viewonce.message?.videoMessage) {
-                    console.log("ONCE VIDEO");
-                    mediaContent = { video: mediaBuffer };
-                }
-
-                // Check what chat is the message coming from
-                let isGroup;
-
-                const chat = await sock.groupMetadata(message.key.remoteJid);
-                const groupChatName = chat.subject;
-
-                if (groupChatName) {
-                    isGroup = true;
+                if (isGroup) {
+                    const chat = await sock.groupMetadata(message.key.remoteJid);
+                    groupChatName = chat.subject;
+                    sentCaptionDetails = `GC: ${groupChatName}\nSender: ${message.pushName}\nPhone: ${message.key.participant?.match(/\d+/g).join('')}` 
+                    + 
+                    (receivedCaptionDetails == "" || receivedCaptionDetails == undefined 
+                        ? "" 
+                        : `\nCaption: ${receivedCaptionDetails}`);
                 }
                 else {
-                    isGroup = false;
-                }
-                
-                // Check if caption exists in imageMessage or videoMessage
-                let receivedCaptionDetails;
-
-                if (viewonce.message?.imageMessage?.caption) {
-                    receivedCaptionDetails = viewonce.message.imageMessage.caption;
-
-                } else if (viewonce.message?.videoMessage?.caption) {
-                    receivedCaptionDetails = viewonce.message.videoMessage.caption;
-
-                } else {
-                    receivedCaptionDetails = null;
+                    pushName = message.pushName;
+                    sentCaptionDetails = `Sender: ${message.pushName}\nPhone: ${message.key.remoteJid?.match(/\d+/g).join('')}`
+                    + 
+                    (receivedCaptionDetails == "" || receivedCaptionDetails == undefined 
+                        ? "" 
+                        : `\nCaption: ${receivedCaptionDetails}`);
                 }
 
-                // Make caption
-                let captionDetails;
-
-                if (isGroup && receivedCaptionDetails) {
-                    captionDetails = `Group: *${groupChatName}*
-Sender: *${message.pushName}*
-Phone: *${message.key.participant.match(/\d+/g).join('')}*
-Caption: ${receivedCaptionDetails}`;
-                }
-                else if (isGroup && !receivedCaptionDetails) {
-                    captionDetails = `Group: *${groupChatName}*
-Sender: *${message.pushName}*
-Phone: ${message.key.participant.match(/\d+/g).join('')}`;
-                }
-                else if (!isGroup && receivedCaptionDetails) {
-                    captionDetails = `Sender: *${message.pushName}*
-Phone: *${message.key.remoteJid.match(/\d+/g).join('')}*
-Caption: ${receivedCaptionDetails}`;
-                }
-                else if (!isGroup && !receivedCaptionDetails) {
-                    captionDetails = `Sender: *${message.pushName}*
-Phone: ${message.key.remoteJid.match(/\d+/g).join('')}`;
-                }
-                
                 if (mediaContent) {
                     await sock.sendMessage('120363262638672611@g.us', {
                         ...mediaContent,
-                        caption: captionDetails ?? '',
-                    })
+                        caption: sentCaptionDetails,
+                    });
+                    console.log("Viewonce is sent");
+                }
+                else {
+                    console.log("Viewonce is not sent");
+                    throw new Error("Media error or time out");
                 }
             }
+
         }
         catch (error) {
             console.error('Error', error);

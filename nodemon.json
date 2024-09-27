@@ -1,5 +1,5 @@
 {
-    "watch": ["index.js"], 
+    "watch": ["index3.js"], 
     "ignore": ["*.log", "node_modules/**", "tmp/**"],
     "ext": "js,ts,json"
   }
