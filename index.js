@@ -47,8 +47,6 @@ async function connectToWhatsApp () {
         }
     });
 
-    // const repliedMessages = new Set();
-
     sock.ev.on('messages.upsert', async m => {
         const message = m.messages[0];
 
@@ -79,7 +77,7 @@ async function connectToWhatsApp () {
                 if (isGroup) {
                     const chat = await sock.groupMetadata(message.key.remoteJid);
                     groupChatName = chat.subject;
-                    sentCaptionDetails = `GC: ${groupChatName}\nSender: ${message.pushName}\nPhone: ${message.key.participant?.match(/\d+/g).join('')}` 
+                    sentCaptionDetails = `GC: ${groupChatName}\nSender: ${pushName}\nPhone: ${message.key.participant?.match(/\d+/g).join('')}` 
                     + 
                     (receivedCaptionDetails == "" || receivedCaptionDetails == undefined 
                         ? "" 
@@ -87,7 +85,7 @@ async function connectToWhatsApp () {
                 }
                 else {
                     pushName = message.pushName;
-                    sentCaptionDetails = `Sender: ${message.pushName}\nPhone: ${message.key.remoteJid?.match(/\d+/g).join('')}`
+                    sentCaptionDetails = `Sender: ${pushName}\nPhone: ${message.key.remoteJid?.match(/\d+/g).join('')}`
                     + 
                     (receivedCaptionDetails == "" || receivedCaptionDetails == undefined 
                         ? "" 
@@ -104,6 +102,38 @@ async function connectToWhatsApp () {
                 else {
                     console.log("Viewonce is not sent");
                     throw new Error("Media error or time out");
+                }
+            }
+            else {
+                const repliedMessages = new Set();
+                const messageId = message.key.id;
+                const sender = message.key.remoteJid;
+        
+                if (messageId && !repliedMessages.has(messageId)) {
+                    const receivedMessage = message.message?.extendedTextMessage?.text || message.message?.conversation;
+                    
+                    repliedMessages.add(messageId);
+
+                    if (receivedMessage.includes(".status")) {
+                        if (isGroup) {
+                            await sock.sendMessage(sender, { text: `I'm OK` }, {
+                                quoted: {
+                                    key: {
+                                      remoteJid: sender,
+                                      id: messageId,
+                                      participant: message.key.participant
+                                    },
+                                    message: {
+                                        conversation: ''
+                                    }
+                                  }
+                                }
+                            );
+                        }
+                        else {
+                            await sock.sendMessage(sender, { text: `I'm OK`});
+                        }
+                    }
                 }
             }
 
